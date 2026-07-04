@@ -1,0 +1,69 @@
+# =========================
+# Python
+# =========================
+.venv/
+.venv-1/
+venv/
+backend/.venv/
+backend/venv/
+
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# =========================
+# Node.js
+# =========================
+node_modules/
+frontend/node_modules/
+
+# Build output
+dist/
+frontend/dist/
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.*
+!.env.example
+
+backend/.env
+frontend/.env
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Operating System
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Misc
+# =========================
+*.sqlite3
+*.db
