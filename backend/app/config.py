@@ -11,6 +11,9 @@ Week 2 additions:
   - OLLAMA_BASE_URL
   - MAX_FILES_PER_REPO
   - MAX_FILE_SIZE_KB
+
+Week 4 additions:
+  - Shared provider-agnostic LLM configuration
 """
 
 from __future__ import annotations
@@ -29,14 +32,25 @@ class Settings(BaseSettings):
 
     # ---- Supabase ----------------------------------------------------------
     supabase_url: str
-    supabase_service_key: str     # service role key (not anon key)
+    supabase_service_key: str  # service role key (not anon key)
 
     # ---- API keys ----------------------------------------------------------
     groq_api_key: str = ""
-    github_token: str = ""       # GitHub personal access token (repo:read)
+    github_token: str = ""  # GitHub personal access token (repo:read)
+
+    # ---- Shared LLM --------------------------------------------------------
+    # Used by app/services/llm.py
+    #
+    # LLM_MODEL intentionally has NO default.
+    # Set it explicitly in .env using a currently supported model for the
+    # selected provider.
+    llm_provider: str = "groq"  # "groq" | "ollama"
+    llm_model: str = ""
+    llm_timeout_seconds: float = 20.0
+    llm_max_retries: int = 1  # total attempts = 1 + retries
 
     # ---- Embeddings --------------------------------------------------------
-    embedding_provider: str = "ollama"   # "ollama" | "noop"
+    embedding_provider: str = "ollama"  # "ollama" | "noop"
     ollama_base_url: str = "http://localhost:11434"
 
     # ---- Ingestion limits --------------------------------------------------
@@ -67,6 +81,7 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
+
     @property
     def rate_chat(self):
         return self.rate_limit_chat
@@ -87,7 +102,5 @@ class Settings(BaseSettings):
     def rate_walkthrough(self):
         return self.rate_limit_default
 
+
 settings = Settings()
-
-
-
