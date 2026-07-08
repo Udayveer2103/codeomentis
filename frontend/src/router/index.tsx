@@ -9,6 +9,7 @@ import AuthCallback from "@/pages/AuthCallback";
 import RepoDetail from "@/pages/RepoDetail";
 import ImpactAnalyzer from "@/pages/ImpactAnalyzer";
 import HeatmapPage from "@/pages/HeatmapPage";
+import Walkthrough from "@/pages/Walkthrough";
 
 const router = createBrowserRouter([
   {
@@ -71,7 +72,6 @@ const router = createBrowserRouter([
   },
 
   // ───────────────── Heatmap ─────────────────
-  // Change "debt" to "heatmap" ONLY if RepoDetail links there.
 
   {
     path: "/repo/:repoId/debt",
@@ -88,9 +88,7 @@ const router = createBrowserRouter([
     path: "/repo/:repoId/walkthrough",
     element: (
       <ProtectedRoute>
-        <div className="p-8 text-white">
-          Walkthrough — Coming Soon
-        </div>
+        <Walkthrough />
       </ProtectedRoute>
     ),
   },

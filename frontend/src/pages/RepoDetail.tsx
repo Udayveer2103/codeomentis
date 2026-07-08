@@ -147,7 +147,7 @@ export default function RepoDetail() {
         "AI-generated reading-order guide to onboard onto any repository fast.",
       icon: <BookOpen className="w-4 h-4 text-purple-400" />,
       href: `/repo/${id}/walkthrough`,
-      ready: false,
+      ready: true,
     },
     {
       label: "Chat with Repo",
