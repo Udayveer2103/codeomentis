@@ -6,7 +6,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.routers import repos
-
+from app.routers import walkthrough
 from app.config import settings
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -63,3 +63,4 @@ app.include_router(heatmap.router, prefix="/heatmap", tags=["heatmap"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(ingest.router, prefix="/api")
 app.include_router(repos.router)
+app.include_router(walkthrough.router)
