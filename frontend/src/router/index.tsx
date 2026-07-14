@@ -74,7 +74,7 @@ const router = createBrowserRouter([
   // ───────────────── Heatmap ─────────────────
 
   {
-    path: "/repo/:repoId/debt",
+    path: "/repo/:repoId/heatmap",
     element: (
       <ProtectedRoute>
         <HeatmapPage />

@@ -29,13 +29,14 @@ EMBEDDING_DIM = 768
 @dataclass
 class CodeChunk:
     """A single embeddable unit ready for storage in code_chunks."""
+
     file_path: str
     function_name: str | None
-    chunk_type: str            # function | class | module
+    chunk_type: str  # function | class | module
     start_line: int
     end_line: int
     content: str
-    embedding: list[float]     # 768-dim vector
+    embedding: list[float]  # 768-dim vector
 
 
 async def embed_functions(
@@ -50,7 +51,7 @@ async def embed_functions(
 
     Args:
         functions: All FunctionInfo objects from the repo.
-        repo_id:   Used for logging only.
+        repo_id: Used for logging only.
 
     Returns:
         List of CodeChunk objects ready for Supabase insertion.
@@ -58,16 +59,7 @@ async def embed_functions(
     if not functions:
         return []
 
-    provider = settings.embedding_provider.lower()
-
-    if provider == "ollama":
-        embedder = OllamaEmbedder(base_url=settings.ollama_base_url)
-    else:
-        logger.warning(
-            "Unknown embedding provider %r — using zero embeddings (development mode)",
-            provider,
-        )
-        embedder = NoOpEmbedder()
+    embedder = _get_embedder()
 
     chunks: list[CodeChunk] = []
     batch_size = 20
@@ -117,7 +109,8 @@ def _format_for_embedding(fn: FunctionInfo) -> str:
         f"Function: {fn.function_name}\n"
         f"Language: {fn.language}\n\n"
     )
-    return header + fn.content[:2000]  # cap at 2000 chars to stay in model context
+
+    return header + fn.content[:2000]
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +125,7 @@ class OllamaEmbedder:
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         import httpx
+
         vectors: list[list[float]] = []
 
         async with httpx.AsyncClient(timeout=60) as client:
@@ -139,7 +133,10 @@ class OllamaEmbedder:
             for text in texts:
                 resp = await client.post(
                     f"{self._base_url}/api/embeddings",
-                    json={"model": "nomic-embed-text", "prompt": text},
+                    json={
+                        "model": "nomic-embed-text",
+                        "prompt": text,
+                    },
                 )
                 resp.raise_for_status()
                 data = resp.json()
@@ -153,3 +150,92 @@ class NoOpEmbedder:
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         return [[0.0] * EMBEDDING_DIM for _ in texts]
+
+
+def _get_embedder() -> OllamaEmbedder | NoOpEmbedder:
+    """
+    Single source of truth for embedding provider selection.
+
+    Both embed_functions() and embed_query() call this helper so they
+    always use the same embedding provider/model. This guarantees that
+    stored code chunk embeddings and live query embeddings exist in the
+    same embedding space.
+
+    Unknown providers intentionally fall back to NoOpEmbedder. Different
+    callers decide whether that degraded mode is acceptable.
+    """
+
+    provider = settings.embedding_provider.lower()
+
+    if provider == "ollama":
+        return OllamaEmbedder(
+            base_url=settings.ollama_base_url,
+        )
+
+    logger.warning(
+        "Unknown embedding provider %r — using zero embeddings (development mode)",
+        provider,
+    )
+    return NoOpEmbedder()
+
+
+class EmbeddingServiceError(Exception):
+    """
+    Raised when a live query embedding cannot be generated.
+
+    Unlike embed_functions(), embed_query() never silently falls back
+    to zero vectors. Returning a zero-vector query embedding would make
+    retrieval appear to work while producing meaningless similarity
+    scores.
+    """
+
+async def embed_query(text: str) -> list[float]:
+    """
+    Generate a single embedding for a user's chat query.
+
+    Uses _get_embedder() so query embeddings are always produced by the
+    same provider/model that generated the stored code_chunks.embedding
+    values. This is required because match_chunks() similarity is only
+    meaningful if both vectors come from the same embedding space.
+
+    Unlike embed_functions(), this raises EmbeddingServiceError instead
+    of silently falling back to zero vectors. A zero-vector query would
+    produce misleading retrieval results.
+    """
+    embedder = _get_embedder()
+
+    # Ingestion may accept NoOpEmbedder as a degraded mode, but live
+    # retrieval must never use zero-vector query embeddings.
+    if isinstance(embedder, NoOpEmbedder):
+        raise EmbeddingServiceError(
+            f"EMBEDDING_PROVIDER='{settings.embedding_provider}' is not a "
+            "recognized provider. Live query embedding requires a real "
+            "embedding provider (currently 'ollama')."
+        )
+
+    try:
+          vectors = await embedder.embed_batch([text])
+    except Exception as exc:
+        logger.warning(
+            "embed_query() failed (provider=%s): %s",
+            settings.embedding_provider,
+            exc,
+        )
+        raise EmbeddingServiceError(
+            f"Failed to embed query: {exc}"
+        ) from exc
+
+    # Defensive validation:
+    # - exactly one vector should be returned
+    # - it must have the expected dimensionality
+    if (
+        not vectors
+        or len(vectors) != 1
+        or len(vectors[0]) != EMBEDDING_DIM
+    ):
+        raise EmbeddingServiceError(
+            f"Embedding provider returned {len(vectors)} vector(s); "
+            f"expected exactly 1 with {EMBEDDING_DIM} dimensions."
+        )
+
+    return vectors[0]

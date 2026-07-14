@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     embedding_provider: str = "ollama"  # "ollama" | "noop"
     ollama_base_url: str = "http://localhost:11434"
 
+        # ---- Chat / RAG --------------------------------------------------------
+    chat_match_count: int = 8
+    chat_context_char_budget: int = 5000
+    chat_history_limit: int = 10
+
     # ---- Ingestion limits --------------------------------------------------
     max_files_per_repo: int = 500
     max_file_size_kb: int = 200
