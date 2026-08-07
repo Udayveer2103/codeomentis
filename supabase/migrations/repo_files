@@ -1,0 +1,71 @@
+-- ============================================================
+-- Migration: repo_files table
+-- Feature: Architecture Intelligence (V2)
+--
+-- Purpose: persists a lightweight file tree per repo (path,
+-- language, is_config) so architecture analysis (TechDetector,
+-- folder analysis) can read repo structure at request time
+-- without re-fetching from GitHub.
+--
+-- Deliberately distinct from file_scores (complexity/heatmap
+-- output — only covers scoreable source files, carries
+-- scoring-specific NOT NULL columns) and code_chunks (embedded
+-- function/class/module chunks for RAG). Neither represents
+-- "every file in the repo," so repurposing either would
+-- conflate an existing responsibility with a new one rather
+-- than cleanly extend it.
+--
+-- No per-file config_metadata column: config file contents are
+-- parsed during ingestion only to produce repos.tech_stack;
+-- intermediate parsing results are not persisted.
+-- ============================================================
+
+CREATE TABLE repo_files (
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+repo_id UUID REFERENCES repos(id) ON DELETE CASCADE NOT NULL,
+path TEXT NOT NULL,
+language TEXT,
+is_config BOOLEAN DEFAULT FALSE,
+created_at TIMESTAMPTZ DEFAULT NOW(),
+UNIQUE (repo_id, path)
+);
+
+ALTER TABLE repo_files ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users see own repo_files" ON repo_files
+FOR ALL USING (
+EXISTS (
+SELECT 1 FROM repos
+WHERE repos.id = repo_files.repo_id
+AND repos.user_id = auth.uid()
+)
+);
+
+CREATE INDEX idx_repo_files_repo_id ON repo_files (repo_id);
+
+-- Atomic delete+insert per repo, matching the existing
+-- replace_walkthrough_steps() pattern.
+CREATE OR REPLACE FUNCTION replace_repo_files(
+p_repo_id UUID,
+p_rows JSONB
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+DELETE FROM repo_files WHERE repo_id = p_repo_id;
+
+INSERT INTO repo_files (repo_id, path, language, is_config)
+SELECT
+p_repo_id,
+r->>'path',
+r->>'language',
+COALESCE((r->>'is_config')::BOOLEAN, FALSE)
+FROM jsonb_array_elements(p_rows) AS r;
+END;
+$$;
+
+-- Final structured tech-stack summary, populated once during
+-- ingestion. architecture_pattern and architecture_summary
+-- already exist on repos and are reused as-is for this feature.
+ALTER TABLE repos ADD COLUMN tech_stack JSONB;

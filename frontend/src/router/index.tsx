@@ -10,6 +10,8 @@ import RepoDetail from "@/pages/RepoDetail";
 import ImpactAnalyzer from "@/pages/ImpactAnalyzer";
 import HeatmapPage from "@/pages/HeatmapPage";
 import Walkthrough from "@/pages/Walkthrough";
+import Chat from "@/pages/Chat";
+import ArchitecturePage from "@/pages/ArchitecturePage";
 
 const router = createBrowserRouter([
   {
@@ -99,9 +101,18 @@ const router = createBrowserRouter([
     path: "/repo/:repoId/chat",
     element: (
       <ProtectedRoute>
-        <div className="p-8 text-white">
-          Chat — Coming Soon
-        </div>
+        <Chat />
+      </ProtectedRoute>
+    ),
+  },
+
+  // ───────────────── Architecture ─────────────────
+
+  {
+    path: "/repo/:repoId/architecture",
+    element: (
+      <ProtectedRoute>
+        <ArchitecturePage />
       </ProtectedRoute>
     ),
   },

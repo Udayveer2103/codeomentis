@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 from github import Github
@@ -15,6 +15,44 @@ SUPPORTED_EXTENSIONS = {
     ".ts": "typescript",
     ".tsx": "typescript",
 }
+
+# Exact filenames recognized as architecture-relevant config.
+# Lockfiles are intentionally excluded — not needed for detection or
+# explanation, and some (yarn.lock, package-lock.json) can be very large.
+CONFIG_FILENAMES = {
+    "package.json",
+    "tsconfig.json",
+    "next.config.js",
+    "next.config.ts",
+    "next.config.mjs",
+    "vite.config.ts",
+    "vite.config.js",
+    "tailwind.config.ts",
+    "tailwind.config.js",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "railway.json",
+    "vercel.json",
+    "render.yaml",
+    "fly.toml",
+    "requirements.txt",
+    "pyproject.toml",
+    "Pipfile",
+    "prisma.schema",
+    "schema.prisma",
+    "drizzle.config.ts",
+    "drizzle.config.js",
+}
+
+# Path prefixes checked separately since these aren't fixed filenames
+# (e.g. .github/workflows/deploy.yml, .github/workflows/ci.yml).
+CONFIG_DIR_PREFIXES = (".github/workflows/",)
+
+# Config files are expected to be small (manifests, not data). Skip
+# content on anything larger than this to avoid pathological repos
+# bloating storage — path/language are still recorded either way.
+MAX_CONFIG_FILE_BYTES = 50_000
 
 
 @dataclass
@@ -31,6 +69,7 @@ class RepoMeta:
     default_branch: str
     language_stats: dict
     files: List[RepoFile]
+    config_files: List[RepoFile] = field(default_factory=list)
 
 
 class GitHubService:
@@ -45,11 +84,15 @@ class GitHubService:
         - https://github.com/owner/repo
         - https://github.com/owner/repo/
         - https://github.com/owner/repo.git
+
+        Returns source files (matched by SUPPORTED_EXTENSIONS) in `files`,
+        and architecture-relevant config files (matched by CONFIG_FILENAMES
+        or CONFIG_DIR_PREFIXES) separately in `config_files`. A file is
+        never counted in both lists.
         """
 
         github_url = github_url.strip().rstrip("/")
 
-        # Remove .git suffix if present
         if github_url.endswith(".git"):
             github_url = github_url[:-4]
 
@@ -61,6 +104,7 @@ class GitHubService:
         repo = self.client.get_repo(repo_name)
 
         files: List[RepoFile] = []
+        config_files: List[RepoFile] = []
 
         contents = repo.get_contents("")
 
@@ -73,22 +117,50 @@ class GitHubService:
 
             language = self._detect_language(item.path)
 
-            if not language:
-                continue
+            if language:
+                try:
+                    decoded = item.decoded_content.decode("utf-8")
 
-            try:
-                decoded = item.decoded_content.decode("utf-8")
-
-                files.append(
-                    RepoFile(
-                        path=item.path,
-                        content=decoded,
-                        language=language,
+                    files.append(
+                        RepoFile(
+                            path=item.path,
+                            content=decoded,
+                            language=language,
+                        )
                     )
-                )
 
-            except Exception:
+                except Exception:
+                    continue
+
                 continue
+
+            if self._is_config_file(item.path):
+                try:
+                    if item.size > MAX_CONFIG_FILE_BYTES:
+                        # Record the file without content — still useful
+                        # for "this file exists" analysis, just not for
+                        # parsing its contents.
+                        config_files.append(
+                            RepoFile(
+                                path=item.path,
+                                content="",
+                                language="config",
+                            )
+                        )
+                        continue
+
+                    decoded = item.decoded_content.decode("utf-8")
+
+                    config_files.append(
+                        RepoFile(
+                            path=item.path,
+                            content=decoded,
+                            language="config",
+                        )
+                    )
+
+                except Exception:
+                    continue
 
         return RepoMeta(
             owner=repo.owner.login,
@@ -96,6 +168,7 @@ class GitHubService:
             default_branch=repo.default_branch,
             language_stats=repo.get_languages(),
             files=files,
+            config_files=config_files,
         )
 
     def _detect_language(self, path: str) -> str:
@@ -103,3 +176,11 @@ class GitHubService:
             if path.endswith(ext):
                 return language
         return ""
+
+    def _is_config_file(self, path: str) -> bool:
+        filename = path.rsplit("/", 1)[-1]
+
+        if filename in CONFIG_FILENAMES:
+            return True
+
+        return any(path.startswith(prefix) for prefix in CONFIG_DIR_PREFIXES)

@@ -149,3 +149,57 @@ async def chat(request: Request, body: ChatRequest):
             "X-Accel-Buffering": "no",
         },
     )
+# ---------------------------------------------------------------------------
+# Chat history
+# ---------------------------------------------------------------------------
+
+@router.get("/{repo_id}/messages")
+@limiter.limit(settings.rate_chat)
+async def get_chat_history(
+    request: Request,
+    repo_id: UUID,
+):
+    """
+    Returns persisted chat history for a repository.
+
+    Thin read endpoint only.
+
+    No orchestration logic lives here—this simply validates repository
+    ownership (matching repos.py) and returns persisted chat_messages so
+    the frontend can display the same conversation the backend already
+    uses as prompt history.
+    """
+
+    user_id = DEV_USER_ID
+    supabase = get_supabase_client()
+    repo_id_str = str(repo_id)
+
+    # Same validation pattern as repos.py / POST endpoint
+    repo_result = (
+        supabase.table("repos")
+        .select("id")
+        .eq("id", repo_id_str)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+
+    if not repo_result.data:
+        raise HTTPException(
+            status_code=404,
+            detail="Repository not found",
+        )
+
+    result = (
+        supabase.table("chat_messages")
+        .select("id, role, content, created_at")
+        .eq("repo_id", repo_id_str)
+        .eq("user_id", user_id)
+        .order("created_at")
+        .execute()
+    )
+
+    return {
+        "repo_id": repo_id_str,
+        "messages": result.data or [],
+    }

@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Plus, GitFork, Clock, AlertCircle } from "lucide-react";
 import type { Repo } from "@/types";
-
+import { api } from "@/lib/api";
 import { useRepos } from "@/hooks/useRepos";
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
@@ -88,12 +88,20 @@ function AddRepoModal({
 }) {
   const [url, setUrl] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Week 2: call POST /ingest with the URL
-    alert(`Week 2: Will ingest ${url}`);
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    await api.post("/ingest", {
+      github_url: url,
+    });
+
     onClose();
-  };
+  } catch (err) {
+    console.error(err);
+    alert(err instanceof Error ? err.message : "Failed to start ingestion");
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
