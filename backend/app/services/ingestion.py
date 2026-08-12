@@ -14,6 +14,7 @@ from app.services.complexity import score_files
 from app.services.embeddings import embed_functions
 from app.services.github import GitHubService
 from app.services.graph_builder import build_call_graph, serialise_graph
+from app.services.tech_detector import detect_architecture_pattern, detect_tech_stack
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,25 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         "status": "indexing",
     }).eq("id", repo_id).execute()
 
+    # Persist the lightweight file tree (path/language/is_config) so
+    # architecture analysis can read repo structure at request time
+    # without re-fetching from GitHub. Source files and config files
+    # share one list here — is_config is the only thing distinguishing
+    # them downstream.
+    file_tree_rows = [
+        {"path": f.path, "language": f.language, "is_config": False}
+        for f in repo_meta.files
+    ] + [
+        {"path": f.path, "language": f.language, "is_config": True}
+        for f in repo_meta.config_files
+    ]
+
+    if file_tree_rows:
+        supabase.rpc(
+            "replace_repo_files",
+            {"p_repo_id": repo_id, "p_rows": file_tree_rows},
+        ).execute()
+
     # -----------------------------------------------------------------------
     # Stage 2 — AST Parsing
     # -----------------------------------------------------------------------
@@ -149,7 +169,7 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         all_functions,
     )
 
-    arch_pattern = _detect_architecture(repo_meta.files)
+    arch_pattern = detect_architecture_pattern(repo_meta.files)
 
     graph_json = serialise_graph(graph_bundle.call_graph)
 
@@ -321,9 +341,17 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         "Finalising..."
     )
 
+    tech_stack = detect_tech_stack(
+        repo_meta.files,
+        repo_meta.config_files,
+        repo_meta.language_stats,
+    )
+
     supabase.table("repos").update({
         "status": "ready",
         "architecture_pattern": arch_pattern,
+        "tech_stack": tech_stack,
+        "architecture_summary": None,
         "chunk_count": len(chunks),
         "ingested_at": datetime.now(timezone.utc).isoformat(),
         "error_message": None,
@@ -392,31 +420,6 @@ async def _mark_error(
         0,
         f"Error: {error_message[:200]}",
     )
-
-
-def _detect_architecture(files) -> str:
-
-    paths = " ".join(
-        f.path for f in files
-    ).lower()
-
-    has_models = "model" in paths or "models/" in paths
-    has_views = "view" in paths or "views/" in paths or "template" in paths
-    has_routes = "route" in paths or "router" in paths or "controller" in paths
-    has_domain = "domain/" in paths
-    has_use_cases = "usecase" in paths or "use_case" in paths
-    has_ports = "port" in paths or "adapter" in paths
-
-    if has_domain and (has_use_cases or has_ports):
-        return "hexagonal"
-
-    elif has_models and has_views and has_routes:
-        return "mvc"
-
-    elif not has_models and not has_views:
-        return "flat"
-
-    return "unknown"
 
 
 def _chunks(lst: list, n: int):

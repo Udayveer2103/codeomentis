@@ -572,4 +572,4 @@ export default function HeatmapPage() {
       )}
     </div>
   );
-}
+} 

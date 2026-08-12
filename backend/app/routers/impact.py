@@ -1,10 +1,15 @@
 """
-impact.py  —  RepoMind Week 3
+impact.py — RepoMind Week 3
 GET /api/impact/{repo_id}?function=file.py::my_func
 
 Loads the call graph from Supabase Storage, reverses it,
 runs BFS from the queried node to find callers (blast radius),
 and returns structured JSON ready for D3 force-graph rendering.
+
+Milestone 4: added optional force_refresh param, passed straight
+through to run_impact_analysis(). No other change to this file's
+behavior — request validation, error handling, and the /functions
+autocomplete endpoint are all unchanged.
 """
 
 from fastapi import APIRouter, HTTPException, Query
@@ -29,6 +34,15 @@ async def get_impact(
         5,
         ge=1,
         le=10,
+    ),
+    force_refresh: bool = Query(
+        False,
+        description=(
+            "If true, bypass the cached AI reasoning result and "
+            "regenerate it. Does not affect graph loading, BFS, or "
+            "any deterministic fact computation — only the AI "
+            "reasoning cache."
+        ),
     ),
 ):
     """
@@ -71,6 +85,7 @@ async def get_impact(
             repo_id=repo_id,
             query_node=function,
             max_depth=max_depth,
+            force_refresh=force_refresh,
         )
 
         return result

@@ -67,3 +67,4 @@ htmlcov/
 # =========================
 *.sqlite3
 *.db
+frontend/.vite/

@@ -56,7 +56,8 @@ class IngestResponse(BaseModel):
 # POST /api/ingest
 # ---------------------------------------------------------------------------
 
-@router.post("/ingest", response_model=IngestResponse)
+@router.post("", response_model=IngestResponse)
+# or @router.post("/")
 async def start_ingestion(
     body: IngestRequest,
     request: Request,
@@ -135,7 +136,7 @@ async def start_ingestion(
 # GET /api/ingest/{repo_id}/progress
 # ---------------------------------------------------------------------------
 
-@router.get("/ingest/{repo_id}/progress")
+@router.get("/{repo_id}/progress")
 async def stream_progress(repo_id: str, request: Request):
     """
     Server-Sent Events stream for ingestion progress.

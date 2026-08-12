@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Loader2,
   Lock,
+  Network,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
@@ -31,11 +32,11 @@ function NavCard({ card }: { card: FeatureCard }) {
   const inner = (
     <div
       className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all
-        ${
-          card.ready
-            ? "bg-neutral-900 border-neutral-800 hover:border-brand-500/50 hover:bg-neutral-800/60 cursor-pointer group"
-            : "bg-neutral-900/50 border-neutral-800/50 opacity-60 cursor-not-allowed"
-        }`}
+      ${
+        card.ready
+          ? "bg-neutral-900 border-neutral-800 hover:border-brand-500/50 hover:bg-neutral-800/60 cursor-pointer group"
+          : "bg-neutral-900/50 border-neutral-800/50 opacity-60 cursor-not-allowed"
+      }`}
     >
       {!card.ready && (
         <span className="absolute top-3 right-3 flex items-center gap-1 text-[10px] font-medium text-neutral-500 bg-neutral-800 border border-neutral-700 px-2 py-0.5 rounded-full">
@@ -147,7 +148,7 @@ export default function RepoDetail() {
         "AI-generated reading-order guide to onboard onto any repository fast.",
       icon: <BookOpen className="w-4 h-4 text-purple-400" />,
       href: `/repo/${id}/walkthrough`,
-      ready: false,
+      ready: true,
     },
     {
       label: "Chat with Repo",
@@ -155,7 +156,15 @@ export default function RepoDetail() {
         "Ask questions about the codebase — powered by RAG over code embeddings.",
       icon: <MessageSquare className="w-4 h-4 text-sky-400" />,
       href: `/repo/${id}/chat`,
-      ready: false,
+      ready: true,
+    },
+    {
+      label: "Architecture Analyzer",
+      description:
+        "Understand a repo's tech stack, folder structure, config, and dependency graph in minutes.",
+      icon: <Network className="w-4 h-4 text-emerald-400" />,
+      href: `/repo/${id}/architecture`,
+      ready: true,
     },
   ];
 
@@ -169,7 +178,7 @@ export default function RepoDetail() {
 
             {/* Back */}
             <Link
-              to="/"
+              to="/dashboard"
               className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors mb-6"
             >
               <ArrowLeft className="w-3.5 h-3.5" />

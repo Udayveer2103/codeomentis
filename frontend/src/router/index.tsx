@@ -1,6 +1,7 @@
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ProtectedRoute, PublicRoute } from "./ProtectedRoute";
 
+import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -9,11 +10,14 @@ import AuthCallback from "@/pages/AuthCallback";
 import RepoDetail from "@/pages/RepoDetail";
 import ImpactAnalyzer from "@/pages/ImpactAnalyzer";
 import HeatmapPage from "@/pages/HeatmapPage";
+import Walkthrough from "@/pages/Walkthrough";
+import Chat from "@/pages/Chat";
+import ArchitecturePage from "@/pages/ArchitecturePage";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/dashboard" replace />,
+    element: <Landing />,
   },
 
   {
@@ -71,10 +75,9 @@ const router = createBrowserRouter([
   },
 
   // ───────────────── Heatmap ─────────────────
-  // Change "debt" to "heatmap" ONLY if RepoDetail links there.
 
   {
-    path: "/repo/:repoId/debt",
+    path: "/repo/:repoId/heatmap",
     element: (
       <ProtectedRoute>
         <HeatmapPage />
@@ -88,9 +91,7 @@ const router = createBrowserRouter([
     path: "/repo/:repoId/walkthrough",
     element: (
       <ProtectedRoute>
-        <div className="p-8 text-white">
-          Walkthrough — Coming Soon
-        </div>
+        <Walkthrough />
       </ProtectedRoute>
     ),
   },
@@ -101,9 +102,18 @@ const router = createBrowserRouter([
     path: "/repo/:repoId/chat",
     element: (
       <ProtectedRoute>
-        <div className="p-8 text-white">
-          Chat — Coming Soon
-        </div>
+        <Chat />
+      </ProtectedRoute>
+    ),
+  },
+
+  // ───────────────── Architecture ─────────────────
+
+  {
+    path: "/repo/:repoId/architecture",
+    element: (
+      <ProtectedRoute>
+        <ArchitecturePage />
       </ProtectedRoute>
     ),
   },
