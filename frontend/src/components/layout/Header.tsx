@@ -1,10 +1,10 @@
-import { Terminal, Sun, Moon, LogOut, ChevronDown } from "lucide-react";
-import { useTheme } from "@/hooks/useTheme";
+import { LogOut, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useRef, useEffect } from "react";
+import repomindLogo from "@/assets/repomind-logo.png";
 
 export default function Header() {
-  const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -30,28 +30,12 @@ export default function Header() {
   return (
     <header className="h-14 border-b border-neutral-800 dark:border-neutral-800 border-neutral-200 bg-white dark:bg-neutral-950 flex items-center justify-between px-4 lg:px-6 shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2">
-        <Terminal className="w-5 h-5 text-brand-500" />
-        <span className="font-display font-bold text-neutral-900 dark:text-white tracking-tight">
-          RepoMind
-        </span>
-      </div>
+      <Link to="/" className="flex items-center">
+        <img src={repomindLogo} alt="RepoMind" className="h-8 w-auto" />
+      </Link>
 
       {/* Right side */}
       <div className="flex items-center gap-2">
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          className="w-8 h-8 flex items-center justify-center rounded-md text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-4 h-4" />
-          ) : (
-            <Moon className="w-4 h-4" />
-          )}
-        </button>
-
         {/* User menu */}
         <div className="relative" ref={menuRef}>
           <button
