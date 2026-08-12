@@ -178,7 +178,7 @@ export default function RepoDetail() {
 
             {/* Back */}
             <Link
-              to="/"
+              to="/dashboard"
               className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors mb-6"
             >
               <ArrowLeft className="w-3.5 h-3.5" />

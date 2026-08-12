@@ -6,6 +6,7 @@ import {
   BookOpen,
   MessageSquare,
   Zap,
+  Network,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -19,6 +20,7 @@ function RepoLinks({ repoId }: { repoId: string }) {
     { to: `/repo/${repoId}/impact`, icon: Zap, label: "Impact Analyzer" },
     { to: `/repo/${repoId}/heatmap`, icon: Flame, label: "Tech Debt" },
     { to: `/repo/${repoId}/walkthrough`, icon: BookOpen, label: "Walkthrough" },
+    { to: `/repo/${repoId}/architecture`, icon: Network, label: "Architecture" },
     { to: `/repo/${repoId}/chat`, icon: MessageSquare, label: "Chat" },
   ];
 

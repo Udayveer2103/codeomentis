@@ -7,6 +7,14 @@ import { Plus, GitFork, Clock, AlertCircle } from "lucide-react";
 import type { Repo } from "@/types";
 import { api } from "@/lib/api";
 import { useRepos } from "@/hooks/useRepos";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
@@ -39,6 +47,11 @@ function RepoCard({ repo }: { repo: Repo }) {
     error: "text-red-400 bg-red-950/40 border-red-900/50",
   };
 
+  const title =
+    repo.owner && repo.name
+      ? `${repo.owner}/${repo.name}`
+      : repo.github_url || "Unknown repository";
+
   return (
     <Link
       to={`/repo/${repo.id}`}
@@ -48,7 +61,7 @@ function RepoCard({ repo }: { repo: Repo }) {
         <div className="flex items-center gap-2 min-w-0">
           <GitFork className="w-4 h-4 text-brand-400 shrink-0" />
           <span className="text-sm font-semibold text-white truncate">
-            {repo.owner}/{repo.name}
+            {title}
           </span>
         </div>
         <span
@@ -58,10 +71,11 @@ function RepoCard({ repo }: { repo: Repo }) {
         </span>
       </div>
 
-      {repo.error_message && (
-        <p className="flex items-center gap-1.5 text-xs text-red-400 mb-2">
-          <AlertCircle className="w-3 h-3 shrink-0" />
-          {repo.error_message}
+      {repo.status === "error" && (
+        <p className="flex items-start gap-1.5 text-xs text-red-400 mb-2">
+          <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+          Unable to access repository. It may be private, unreachable, or no
+          longer available.
         </p>
       )}
 
@@ -87,31 +101,34 @@ function AddRepoModal({
   onClose: () => void;
 }) {
   const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
+    setError(null);
 
-  try {
-    await api.post("/ingest", {
-      github_url: url,
-    });
+    try {
+      await api.post("/ingest", {
+        github_url: url,
+      });
 
-    onClose();
-  } catch (err) {
-    console.error(err);
-    alert(err instanceof Error ? err.message : "Failed to start ingestion");
-  }
-};
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Failed to start ingestion");
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-neutral-900 border border-neutral-700 rounded-2xl p-6 animate-fade-in">
-        <h2 className="text-lg font-display font-bold text-white mb-1">
-          Add repository
-        </h2>
-        <p className="text-sm text-neutral-400 mb-6">
-          Paste a public GitHub URL to start analysis
-        </p>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add repository</DialogTitle>
+          <DialogDescription>
+            Paste a public GitHub URL to start analysis
+          </DialogDescription>
+        </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="url"
@@ -122,6 +139,16 @@ function AddRepoModal({
             placeholder="https://github.com/owner/repo"
             className="w-full px-3 py-2.5 rounded-lg bg-neutral-800 border border-neutral-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30 text-white text-sm placeholder:text-neutral-600 transition-all font-mono"
           />
+
+          {error && (
+            <Alert
+              variant="destructive"
+              className="border-red-900/50 bg-red-950/40 text-red-400"
+            >
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex gap-3">
             <button
               type="button"
@@ -138,8 +165,8 @@ function AddRepoModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
