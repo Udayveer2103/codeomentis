@@ -1,17 +1,33 @@
-// pages/ImpactAnalyzer.tsx  —  RepoMind Week 3
+// pages/ImpactAnalyzer.tsx — RepoMind Week 3
 //
 // Full Impact Analyzer page.
 // URL: /repo/:repoId/impact
 //
 // Layout:
-//   Top bar   — repo name + depth slider
-//   Main area — FunctionSearch  |  ForceGraph  |  ImpactStats
+// Top bar — repo name + depth slider
+// Main area — FunctionSearch | AI Summary | Details | Recommendations |
+//             Cross-Feature Links | collapsible Dependency Graph (ForceGraph + Stats)
 //
 // Reads repoId from React Router params.
+//
+// Milestone 5: added ImpactSummaryPanel above the graph/stats grid.
+// Milestone 6: added ImpactDetailsPanel below the graph/stats grid.
+// Milestone 7: added ImpactRecommendationsPanel below ImpactDetailsPanel.
+// Milestone 8: reordered the page so AI content (Summary → Details →
+// Recommendations) leads, added CrossFeatureLinks, and wrapped the
+// existing graph/stats grid in a collapsible "Dependency Graph" section
+// (collapsed by default, CSS grid-template-rows 0fr/1fr transition —
+// same technique already used elsewhere in RepoMind, no new dependency).
+// ImpactForceGraph and ImpactStats remain always-mounted and completely
+// untouched internally — collapsing only changes their container's
+// visibility, never their props, so their D3 lifecycle is unaffected
+// by the toggle. FunctionSearch, ImpactSummaryPanel, ImpactDetailsPanel,
+// ImpactRecommendationsPanel, and existing 404/500 error handling are
+// all unchanged.
 
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Zap, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Zap, SlidersHorizontal, ChevronDown, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +35,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import FunctionSearch from "../components/impact/FunctionSearch";
 import ImpactForceGraph from "../components/impact/ImpactForceGraph";
 import ImpactStats from "../components/impact/ImpactStats";
+import ImpactSummaryPanel from "../components/impact/ImpactSummaryPanel";
+import ImpactDetailsPanel from "../components/impact/ImpactDetailsPanel";
+import ImpactRecommendationsPanel from "../components/impact/ImpactRecommendationsPanel";
+import CrossFeatureLinks from "../components/impact/CrossFeatureLinks";
 import { useImpactAnalysis } from "@/hooks/useImpact";
 import type { ImpactNode } from "@/hooks/useImpact";
 
@@ -27,6 +47,7 @@ export default function ImpactAnalyzer() {
   const [selectedFunction, setSelectedFunction] = useState<string | null>(null);
   const [maxDepth, setMaxDepth] = useState(4);
   const [selectedNode, setSelectedNode] = useState<ImpactNode | null>(null);
+  const [graphExpanded, setGraphExpanded] = useState(false);
 
   const {
     data: result,
@@ -90,8 +111,8 @@ export default function ImpactAnalyzer() {
             onChange={(v: string) => {
               setSelectedFunction(v);
               setSelectedNode(null);
-          }}
-            
+            }}
+
           />
         </div>
 
@@ -111,11 +132,14 @@ export default function ImpactAnalyzer() {
 
         {/* Loading */}
         {selectedFunction && isLoading && (
-          <div className="grid grid-cols-[1fr_260px] gap-4">
-            <Skeleton className="h-[580px] rounded-xl bg-slate-800" />
-            <div className="flex flex-col gap-4">
-              <Skeleton className="h-36 rounded-xl bg-slate-800" />
-              <Skeleton className="h-36 rounded-xl bg-slate-800" />
+          <div>
+            <Skeleton className="mb-5 h-24 rounded-xl bg-slate-800" />
+            <div className="grid grid-cols-[1fr_260px] gap-4">
+              <Skeleton className="h-[580px] rounded-xl bg-slate-800" />
+              <div className="flex flex-col gap-4">
+                <Skeleton className="h-36 rounded-xl bg-slate-800" />
+                <Skeleton className="h-36 rounded-xl bg-slate-800" />
+              </div>
             </div>
           </div>
         )}
@@ -147,30 +171,75 @@ export default function ImpactAnalyzer() {
 
         {/* Result */}
         {result && !isLoading && (
-          <div className="grid grid-cols-[1fr_260px] gap-5 items-start">
-            {/* Graph */}
-            <div>
-              {result.nodes.length <= 1 ? (
-                <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-slate-800 py-28 text-center">
-                  <p className="text-slate-400 text-sm">No callers found</p>
-                  <p className="text-slate-600 text-xs">
-                    This function is not called by anything in the codebase (or within depth {maxDepth}).
-                  </p>
-                </div>
-              ) : (
-                <ImpactForceGraph
-                  nodes={result.nodes}
-                  links={result.links}
-                  darkMode={true}
-                  height={580}
-                  onNodeClick={setSelectedNode}
-                />
-              )}
-            </div>
+          <>
+            <ImpactSummaryPanel result={result} />
 
-            {/* Stats panel */}
-            <ImpactStats result={result} selectedNode={selectedNode} />
-          </div>
+            <ImpactDetailsPanel result={result} />
+
+            <ImpactRecommendationsPanel result={result} />
+
+            <CrossFeatureLinks repoId={repoId!} />
+
+            {/* ── Collapsible Dependency Graph section ─────────────────────
+                ForceGraph + Stats stay always-mounted; only this wrapper's
+                grid-template-rows toggles between 0fr (collapsed) and 1fr
+                (expanded). ImpactForceGraph/ImpactStats props never change
+                as a result of this toggle, so their D3 simulation and
+                selected-node state are never reset by collapsing/expanding. */}
+            <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/60">
+              <button
+                type="button"
+                onClick={() => setGraphExpanded((v) => !v)}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left"
+              >
+                <GitBranch className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-xs uppercase tracking-widest text-slate-400">
+                  Dependency Graph
+                </span>
+                <span className="text-xs text-slate-600">
+                  {result.graph_stats.total_nodes.toLocaleString()} nodes ·{" "}
+                  {result.graph_stats.total_edges.toLocaleString()} edges (full repository graph)
+                </span>
+                <ChevronDown
+                  className={`ml-auto h-4 w-4 text-slate-500 transition-transform ${
+                    graphExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <div
+                className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                style={{ gridTemplateRows: graphExpanded ? "1fr" : "0fr" }}
+              >
+                <div className="overflow-hidden">
+                  <div className="grid grid-cols-[1fr_260px] gap-5 items-start p-4 pt-0">
+                    {/* Graph */}
+                    <div>
+                      {result.nodes.length <= 1 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-slate-800 py-28 text-center">
+                          <p className="text-slate-400 text-sm">No callers found</p>
+                          <p className="text-slate-600 text-xs">
+                            This function is not called by anything in the codebase (or within depth {maxDepth}).
+                          </p>
+                        </div>
+                      ) : (
+                        <ImpactForceGraph
+                          nodes={result.nodes}
+                          links={result.links}
+                          darkMode={true}
+                          height={580}
+                          onNodeClick={setSelectedNode}
+                        />
+                      )}
+                    </div>
+
+                    {/* Stats panel */}
+                    <ImpactStats result={result} selectedNode={selectedNode} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </main>
     </div>
