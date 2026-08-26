@@ -202,9 +202,7 @@ export default function Landing() {
             What you can understand
           </p>
 
-          {/* Compact, centered capability list */}
           <div className="mt-5 max-w-xl mx-auto">
-
             <Capability
               icon={
                 <GitMerge className="w-4 h-4 text-brand-400" />
@@ -244,7 +242,6 @@ export default function Landing() {
               title="Chat with Your Codebase"
               description="Ask questions with context-aware retrieval over your code."
             />
-
           </div>
         </section>
 
@@ -271,7 +268,7 @@ export default function Landing() {
 
       <footer className="border-t border-neutral-900 py-6 px-6">
         <div className="w-full flex items-center justify-between">
-          
+
           <div className="flex items-center gap-2">
             <img
               src={codeoMentisLogo}
