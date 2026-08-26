@@ -41,10 +41,31 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export type IngestionStage =
+  | "fetching"
+  | "parsing"
+  | "graphing"
+  | "scoring"
+  | "embedding"
+  | "storing"
+  | "ready"
+  | "error";
+
+// Structured counters are all optional: a given progress event only
+// carries the counters the backend pipeline actually had in scope at
+// that stage (see _emit() in app/services/ingestion.py) — an absent
+// field means "not reported yet", never a fabricated 0.
 export interface IngestionProgress {
-  stage: "fetching" | "parsing" | "embedding" | "scoring" | "done" | "error";
+  stage: IngestionStage;
   progress: number;
   message: string;
+  files_processed?: number;
+  total_files?: number;
+  functions_extracted?: number;
+  chunks_created?: number;
+  total_chunks?: number;
+  graph_nodes?: number;
+  graph_edges?: number;
 }
 
 export interface ImpactNode {

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Repo } from "@/types";
 
@@ -22,4 +22,18 @@ export function useRepos() {
     loading: isLoading,
     error: error ?? null,
   };
+}
+
+// Removes a repository (and its RepoMind data) from the current user's
+// account — never touches the underlying GitHub repository itself.
+export function useDeleteRepo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (repoId: string) => api.delete(`/api/repos/${repoId}`),
+    onSuccess: (_data, repoId) => {
+      queryClient.removeQueries({ queryKey: ["repo", repoId] });
+      queryClient.invalidateQueries({ queryKey: ["repos"] });
+    },
+  });
 }

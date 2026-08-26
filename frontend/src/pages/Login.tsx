@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { GitBranch, Eye, EyeOff, Terminal } from "lucide-react";
+import { GitBranch, Eye, EyeOff } from "lucide-react";
+import codeoMentisLogo from "@/assets/codeomentis-logo.png";
 export default function Login() {
   const { signInWithGitHub, signInWithEmail } = useAuth();
   const navigate = useNavigate();
@@ -42,21 +43,23 @@ export default function Login() {
     <div className="min-h-screen bg-neutral-950 flex">
       {/* Left panel — branding */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-neutral-900 border-r border-neutral-800">
-        <div className="flex items-center gap-2">
-          <Terminal className="w-6 h-6 text-brand-400" />
-          <span className="font-display text-xl font-bold text-white tracking-tight">
-            RepoMind
-          </span>
+        <div>
+          <img
+            src={codeoMentisLogo}
+            alt="CodeoMentis"
+            className="h-10 w-auto object-contain"
+          />
         </div>
         <div>
           <p className="font-display text-4xl font-bold text-white leading-tight mb-4">
-            Understand any codebase
+            The Mind of
             <br />
-            <span className="text-brand-400">in minutes.</span>
+            <span className="text-brand-400">Your Codebase.</span>
           </p>
           <p className="text-neutral-400 text-sm leading-relaxed max-w-sm">
-            Change impact analysis, tech debt heatmaps, onboarding walkthroughs,
-            and architecture-aware Q&A — all powered by your repo.
+            Understand unfamiliar repositories faster with architecture
+            mapping, impact analysis, technical-debt insights, and
+            context-aware code intelligence.
           </p>
         </div>
         <div className="flex gap-6 text-xs text-neutral-600">
@@ -64,7 +67,7 @@ export default function Login() {
           <span>·</span>
           <span>Graph-based</span>
           <span>·</span>
-          <span>Open source stack</span>
+          <span>Context-aware</span>
         </div>
       </div>
 
@@ -72,16 +75,20 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-sm animate-fade-in">
           {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <Terminal className="w-5 h-5 text-brand-400" />
-            <span className="font-display text-lg font-bold text-white">
-              RepoMind
-            </span>
+          <div className="flex items-center mb-8 lg:hidden">
+            <img
+              src={codeoMentisLogo}
+              alt="CodeoMentis"
+              className="h-9 w-auto object-contain"
+            />
           </div>
 
           <h1 className="text-2xl font-display font-bold text-white mb-1">
             Welcome back
           </h1>
+          <p className="text-sm text-neutral-400 mb-1">
+            Continue exploring your codebase.
+          </p>
           <p className="text-sm text-neutral-400 mb-8">
             Don't have an account?{" "}
             <Link to="/signup" className="text-brand-400 hover:text-brand-300 transition-colors">

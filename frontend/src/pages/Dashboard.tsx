@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
@@ -30,7 +31,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       </div>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-sm font-medium transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-neutral-950 text-sm font-medium transition-colors"
       >
         <Plus className="w-4 h-4" />
         Add repository
@@ -102,17 +103,30 @@ function AddRepoModal({
 }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     try {
-      await api.post("/ingest", {
+      const { repo_id } = await api.post<{ repo_id: string }>("/ingest", {
         github_url: url,
       });
 
+      // Same ["repos"] key useRepos() already reads — makes the new
+      // repo (status "indexing") show up on the Dashboard the moment
+      // the user comes back to it, instead of waiting on staleTime.
+      await queryClient.invalidateQueries({ queryKey: ["repos"] });
+
       onClose();
+
+      // Go straight to the new repo's page so RepoDetail mounts and
+      // its existing useIngestionProgress polling starts immediately —
+      // previously nothing navigated here, so progress was never
+      // visible until the user manually clicked into the repo later.
+      navigate(`/repo/${repo_id}`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Failed to start ingestion");
@@ -159,7 +173,7 @@ function AddRepoModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-sm font-semibold transition-colors"
+              className="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-neutral-950 text-sm font-semibold transition-colors"
             >
               Start ingestion
             </button>
@@ -186,7 +200,6 @@ export default function Dashboard() {
         <Sidebar />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto animate-fade-in">
-            {/* Page header */}
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-2xl font-display font-bold text-white">
@@ -201,7 +214,7 @@ export default function Dashboard() {
               {repos.length > 0 && (
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-neutral-950 text-sm font-medium transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Add repo
@@ -209,7 +222,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Repo grid */}
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[...Array(3)].map((_, i) => (

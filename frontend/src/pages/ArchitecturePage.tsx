@@ -1,4 +1,4 @@
-// pages/ArchitecturePage.tsx — RepoMind
+// pages/ArchitecturePage.tsx — CodeoMentis
 //
 // Repository Architecture Analyzer page. Thin shell: layout, tab
 // switching, and the fetch-stage tracker live here; all rendering of
