@@ -69,7 +69,7 @@ export default function Signup() {
         <div className="flex items-center gap-2 mb-8">
           <Terminal className="w-5 h-5 text-brand-400" />
           <span className="font-display text-lg font-bold text-white">
-            RepoMind
+            CodeoMentis
           </span>
         </div>
 
@@ -153,7 +153,7 @@ export default function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors duration-150"
+            className="w-full py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-950 text-sm font-semibold transition-colors duration-150"
           >
             {loading ? "Creating account…" : "Create account"}
           </button>

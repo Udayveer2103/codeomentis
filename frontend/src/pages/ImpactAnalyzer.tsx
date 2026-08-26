@@ -124,7 +124,7 @@ export default function ImpactAnalyzer() {
               Pick a function above to see its blast radius
             </p>
             <p className="text-slate-600 text-xs max-w-xs">
-              RepoMind will trace every caller up to depth {maxDepth} using the
+                            CodeoMentis will trace every caller up to depth {maxDepth} using the
               call graph built during ingestion.
             </p>
           </div>

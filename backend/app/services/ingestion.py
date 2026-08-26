@@ -1,7 +1,3 @@
-"""
-Ingestion orchestrator — runs the full pipeline for a single repository.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -18,10 +14,6 @@ from app.services.tech_detector import detect_architecture_pattern, detect_tech_
 
 logger = logging.getLogger(__name__)
 
-
-# ---------------------------------------------------------------------------
-# Public entry point
-# ---------------------------------------------------------------------------
 
 async def run_ingestion(repo_id: str, github_url: str, user_id: str) -> None:
     """
@@ -74,6 +66,7 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         20,
         f"Fetched {len(repo_meta.files)} files from "
         f"{repo_meta.owner}/{repo_meta.name}",
+        total_files=len(repo_meta.files),
     )
 
     # FIXED: update() instead of upload()
@@ -113,7 +106,8 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         repo_id,
         "parsing",
         25,
-        "Parsing source files..."
+        "Parsing source files...",
+        total_files=len(repo_meta.files),
     )
 
     walker = ASTWalker()
@@ -143,6 +137,9 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
                 progress,
                 f"Parsed {i}/{len(repo_meta.files)} files "
                 f"({len(all_functions)} functions found)",
+                files_processed=i,
+                total_files=len(repo_meta.files),
+                functions_extracted=len(all_functions),
             )
 
     await _emit(
@@ -151,6 +148,9 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         40,
         f"Extracted {len(all_functions)} functions "
         f"from {len(repo_meta.files)} files",
+        files_processed=len(repo_meta.files),
+        total_files=len(repo_meta.files),
+        functions_extracted=len(all_functions),
     )
 
     # -----------------------------------------------------------------------
@@ -161,7 +161,8 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         repo_id,
         "graphing",
         42,
-        "Building call graph..."
+        "Building call graph...",
+        functions_extracted=len(all_functions),
     )
 
     graph_bundle = await asyncio.to_thread(
@@ -228,6 +229,8 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         f"Built call graph: "
         f"{graph_bundle.call_graph.number_of_nodes()} nodes, "
         f"{graph_bundle.call_graph.number_of_edges()} edges",
+        graph_nodes=graph_bundle.call_graph.number_of_nodes(),
+        graph_edges=graph_bundle.call_graph.number_of_edges(),
     )
 
     # -----------------------------------------------------------------------
@@ -278,6 +281,8 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         "scoring",
         65,
         f"Scored {len(file_scores)} files",
+        files_processed=len(file_scores),
+        total_files=len(repo_meta.files),
     )
 
     # -----------------------------------------------------------------------
@@ -291,6 +296,11 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         "Generating code embeddings..."
     )
 
+    # Not modified: embed_functions() itself has no progress callback,
+    # so no intermediate counter is emitted during this call. See
+    # `total_chunks`/`chunks_created` below — both come from real,
+    # already-known lengths once this call returns, not from any
+    # value invented during the call.
     chunks = await embed_functions(
         all_functions,
         repo_id,
@@ -300,7 +310,8 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         repo_id,
         "embedding",
         85,
-        f"Embedding {len(chunks)} code chunks..."
+        f"Embedding {len(chunks)} code chunks...",
+        total_chunks=len(chunks),
     )
 
     if chunks:
@@ -338,7 +349,9 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         repo_id,
         "storing",
         95,
-        "Finalising..."
+        "Finalising...",
+        chunks_created=len(chunks),
+        total_chunks=len(chunks),
     )
 
     tech_stack = detect_tech_stack(
@@ -365,6 +378,13 @@ async def _pipeline(repo_id: str, github_url: str, user_id: str) -> None:
         f"{len(repo_meta.files)} files, "
         f"{len(all_functions)} functions, "
         f"{len(chunks)} embeddings",
+        files_processed=len(repo_meta.files),
+        total_files=len(repo_meta.files),
+        functions_extracted=len(all_functions),
+        chunks_created=len(chunks),
+        total_chunks=len(chunks),
+        graph_nodes=graph_bundle.call_graph.number_of_nodes(),
+        graph_edges=graph_bundle.call_graph.number_of_edges(),
     )
 
     logger.info(
@@ -382,6 +402,14 @@ async def _emit(
     stage: str,
     progress: int,
     message: str,
+    *,
+    files_processed: int | None = None,
+    total_files: int | None = None,
+    functions_extracted: int | None = None,
+    chunks_created: int | None = None,
+    total_chunks: int | None = None,
+    graph_nodes: int | None = None,
+    graph_edges: int | None = None,
 ) -> None:
 
     logger.info(
@@ -394,12 +422,28 @@ async def _emit(
 
     supabase = get_supabase_client()
 
-    supabase.table("progress_events").insert({
+    row: dict = {
         "repo_id": repo_id,
         "stage": stage,
         "progress": progress,
         "message": message,
-    }).execute()
+    }
+
+    # Only include counters the caller actually provided — never write
+    # a fabricated or inferred value, and never overwrite with a 0/None
+    # that looks like a real reading.
+    optional_counters = {
+        "files_processed": files_processed,
+        "total_files": total_files,
+        "functions_extracted": functions_extracted,
+        "chunks_created": chunks_created,
+        "total_chunks": total_chunks,
+        "graph_nodes": graph_nodes,
+        "graph_edges": graph_edges,
+    }
+    row.update({k: v for k, v in optional_counters.items() if v is not None})
+
+    supabase.table("progress_events").insert(row).execute()
 
 
 async def _mark_error(

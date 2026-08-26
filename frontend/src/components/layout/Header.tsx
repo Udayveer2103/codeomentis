@@ -2,7 +2,7 @@ import { LogOut, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useRef, useEffect } from "react";
-import repomindLogo from "@/assets/repomind-logo.png";
+import codeoMentisLogo from "@/assets/codeomentis-logo.png";
 
 export default function Header() {
   const { user, signOut } = useAuth();
@@ -31,7 +31,11 @@ export default function Header() {
     <header className="h-14 border-b border-neutral-800 dark:border-neutral-800 border-neutral-200 bg-white dark:bg-neutral-950 flex items-center justify-between px-4 lg:px-6 shrink-0">
       {/* Logo */}
       <Link to="/" className="flex items-center">
-        <img src={repomindLogo} alt="RepoMind" className="h-8 w-auto" />
+        <img
+          src={codeoMentisLogo}
+          alt="CodeoMentis"
+          className="h-9 w-auto object-contain"
+        />
       </Link>
 
       {/* Right side */}
