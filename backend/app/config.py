@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # ---- API keys ----------------------------------------------------------
     groq_api_key: str = ""
     github_token: str = ""  # GitHub personal access token (repo:read)
-
+    gemini_api_key: str = ""
     # ---- Shared LLM --------------------------------------------------------
     # Used by app/services/llm.py
     #
