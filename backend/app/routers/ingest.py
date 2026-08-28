@@ -7,11 +7,12 @@ import re
 import uuid
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
 
-from app.db.supabase import get_supabase_client
+from app.db.supabase import AuthUser, get_supabase_client
+from app.dependencies import get_current_user
 from app.services.ingestion import run_ingestion
 
 logger = logging.getLogger(__name__)
@@ -62,13 +63,14 @@ async def start_ingestion(
     body: IngestRequest,
     request: Request,
     background_tasks: BackgroundTasks,
+    current_user: AuthUser = Depends(get_current_user),
 ):
     """
     Create a repo record and kick off the background ingestion pipeline.
     """
 
-    # TEMP DEV USER
-    user_id = "9a1d390c-f049-4199-8146-503123f4f1f3"
+
+    user_id = current_user.id
 
     supabase = get_supabase_client()
 
@@ -137,12 +139,16 @@ async def start_ingestion(
 # ---------------------------------------------------------------------------
 
 @router.get("/{repo_id}/progress")
-async def stream_progress(repo_id: str, request: Request):
+async def stream_progress(
+    repo_id: str,
+    request: Request,
+    current_user: AuthUser = Depends(get_current_user),
+):
     """
     Server-Sent Events stream for ingestion progress.
     """
 
-    user_id ="9a1d390c-f049-4199-8146-503123f4f1f3"
+    user_id = current_user.id
 
     supabase = get_supabase_client()
 
@@ -223,11 +229,3 @@ async def _event_generator(
             elapsed_since_keepalive = 0
 
         await asyncio.sleep(poll_interval)
-
-
-# ---------------------------------------------------------------------------
-# Auth helper (TEMP DEV BYPASS)
-# ---------------------------------------------------------------------------
-
-def _extract_token(request: Request) -> str:
-    return "dev-token"

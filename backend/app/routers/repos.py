@@ -1,25 +1,28 @@
 import logging
 
-from fastapi import APIRouter, Request, HTTPException, Response
+from fastapi import APIRouter, Request, HTTPException, Response, Depends
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from app.db.supabase import get_supabase_client
+from app.db.supabase import AuthUser, get_supabase_client
+from app.dependencies import get_current_user
 from app.config import settings
 
 logger = logging.getLogger(__name__)
-
+supabase = get_supabase_client()
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(prefix="/api/repos", tags=["repos"])
 
 # Dev bypass — same pattern as impact.py, heatmap.py
-DEV_USER_ID = "9a1d390c-f049-4199-8146-503123f4f1f3"
+
 
 
 @router.get("")
 @limiter.limit(settings.rate_heatmap)  # reuse same rate config; add rate_repos to config if you want separate tuning
-async def list_repos(request: Request):
-    user_id = DEV_USER_ID
-    supabase = get_supabase_client()
+async def list_repos(
+    request: Request,
+    current_user: AuthUser = Depends(get_current_user),
+):
+    user_id = current_user.id
 
     result = (
         supabase.table("repos")
@@ -37,9 +40,12 @@ async def list_repos(request: Request):
 
 @router.get("/{repo_id}")
 @limiter.limit(settings.rate_heatmap)
-async def get_repo(request: Request, repo_id: str):
-    user_id = DEV_USER_ID
-    supabase = get_supabase_client()
+async def get_repo(
+    request: Request,
+    repo_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+):
+    user_id = current_user.id
 
     result = (
         supabase.table("repos")
@@ -60,7 +66,11 @@ async def get_repo(request: Request, repo_id: str):
 
 @router.get("/{repo_id}/progress")
 @limiter.limit(settings.rate_heatmap)
-async def get_repo_progress(request: Request, repo_id: str):
+async def get_repo_progress(
+    request: Request,
+    repo_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+):
     """
     Returns the single latest progress_events row for this repository —
     a plain polled GET, distinct from the existing SSE stream at
@@ -69,7 +79,7 @@ async def get_repo_progress(request: Request, repo_id: str):
     before touching progress_events, so this can't be used to probe
     another user's repo_id.
     """
-    user_id = DEV_USER_ID
+    user_id = current_user.id
     supabase = get_supabase_client()
 
     repo = (
@@ -108,7 +118,11 @@ async def get_repo_progress(request: Request, repo_id: str):
 
 @router.delete("/{repo_id}", status_code=204)
 @limiter.limit(settings.rate_heatmap)
-async def delete_repo(request: Request, repo_id: str):
+async def delete_repo(
+    request: Request,
+    repo_id: str,
+    current_user: AuthUser = Depends(get_current_user),
+):
     """
     Removes a repository from RepoMind — never touches the actual GitHub
     repository. Deleting the `repos` row cascades (ON DELETE CASCADE) to
@@ -118,7 +132,7 @@ async def delete_repo(request: Request, repo_id: str):
     Storage bucket is NOT covered by Postgres FK cascades, so it's
     removed explicitly below.
     """
-    user_id = DEV_USER_ID
+    user_id = current_user.id
     supabase = get_supabase_client()
 
     # The service-role key bypasses RLS, so this explicit user_id filter

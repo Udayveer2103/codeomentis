@@ -9,6 +9,7 @@
 // states, send/reset. UI-agnostic — no scrolling or rendering decisions
 // live here (see components/chat/MessageList.tsx for auto-scroll).
 
+import { supabase } from "@/lib/supabase";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { extractSSEFrames, type SSEFrame } from "@/utils/sse";
@@ -207,12 +208,23 @@ export function useChat(repoId: string) {
       };
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ repo_id: repoId, message: trimmed }),
-          signal: controller.signal,
-        });
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    throw new Error("You must be logged in to use chat.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ repo_id: repoId, message: trimmed }),
+    signal: controller.signal,
+  });
 
         if (!response.ok || !response.body) {
           const errBody = await response.json().catch(() => null);
