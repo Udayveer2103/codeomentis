@@ -569,7 +569,7 @@ export default function RepoDetail() {
               <span className="text-neutral-200 font-medium">
                 {repo ? `${repo.owner}/${repo.name}` : "this repository"}
               </span>{" "}
-              and all of its RepoMind data (analysis, walkthroughs, chat
+              and all of its CodeoMentis data (analysis, walkthroughs, chat
               history) from your account. The GitHub repository itself is
               not affected. This can't be undone.
             </DialogDescription>

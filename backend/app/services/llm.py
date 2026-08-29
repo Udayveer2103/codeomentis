@@ -160,14 +160,14 @@ async def generate_text(
     temperature: float = 0.3,
 ) -> str:
     """
-    Single entry point for non-streaming LLM text generation in RepoMind.
+    Single entry point for non-streaming LLM text generation in CodeoMentis.
 
     Wraps the call in a timeout (settings.llm_timeout_seconds) and retries
     up to settings.llm_max_retries times on timeout or failure, with a
     short backoff between attempts. Every attempt's duration is logged
     regardless of outcome. If every attempt fails, raises
     LLMServiceError — callers must catch this and degrade to
-    deterministic-only behavior. Nothing in RepoMind should hard-depend
+    deterministic-only behavior. Nothing in CodeoMentis should hard-depend
     on the LLM being available.
     """
     total_attempts = 1 + max(0, settings.llm_max_retries)

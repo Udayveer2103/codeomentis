@@ -1,5 +1,5 @@
 """
-impact.py — RepoMind Impact Analyzer service layer
+impact.py — CodeoMentis Impact Analyzer service layer
 
 Loads call_graph.json from Supabase Storage, rebuilds it as a
 NetworkX DiGraph, reverses it, and runs BFS from the queried node

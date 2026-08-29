@@ -1,4 +1,4 @@
-// components/walkthrough/ReadingPath.tsx — RepoMind Walkthrough Redesign
+// components/walkthrough/ReadingPath.tsx — CodeoMentis Walkthrough Redesign
 //
 // Owns the empty state, the grouped layout, and the single source of
 // truth for which step's Implementation Details panel is open — only one

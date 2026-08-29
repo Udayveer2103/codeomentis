@@ -1,4 +1,4 @@
-// components/chat/MessageList.tsx — RepoMind Week 4, Milestone 5
+// components/chat/MessageList.tsx — CodeoMentis Week 4, Milestone 5
 //
 // Owns: scroll container, auto-scroll behavior, empty state, composing
 // ChatMessage components. useChat.ts stays UI-agnostic — it has no

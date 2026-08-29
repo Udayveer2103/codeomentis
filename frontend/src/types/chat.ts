@@ -1,4 +1,4 @@
-// types/chat.ts — RepoMind Week 4, Milestone 5
+// types/chat.ts — CodeoMentis Week 4, Milestone 5
 //
 // Shared types for the chat feature, kept independent of any specific
 // hook or component so both layers (useChat.ts, and presentational

@@ -1,4 +1,4 @@
-// components/architecture/ArchitectureGraph.tsx — RepoMind Architecture Analyzer
+// components/architecture/ArchitectureGraph.tsx — CodeoMentis Architecture Analyzer
 //
 // Renders the architecture graph via React Flow, auto-laid-out with
 // Dagre (locked decision — see V2 handoff §3.4). Presentational:

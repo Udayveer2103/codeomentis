@@ -1,4 +1,4 @@
-// pages/ImpactAnalyzer.tsx — RepoMind Week 3
+// pages/ImpactAnalyzer.tsx — CodeoMentis Week 3
 //
 // Full Impact Analyzer page.
 // URL: /repo/:repoId/impact
@@ -17,7 +17,7 @@
 // Recommendations) leads, added CrossFeatureLinks, and wrapped the
 // existing graph/stats grid in a collapsible "Dependency Graph" section
 // (collapsed by default, CSS grid-template-rows 0fr/1fr transition —
-// same technique already used elsewhere in RepoMind, no new dependency).
+// same technique already used elsewhere in CodeoMentis, no new dependency).
 // ImpactForceGraph and ImpactStats remain always-mounted and completely
 // untouched internally — collapsing only changes their container's
 // visibility, never their props, so their D3 lifecycle is unaffected

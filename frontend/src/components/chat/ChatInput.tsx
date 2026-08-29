@@ -1,4 +1,4 @@
-// components/chat/ChatInput.tsx — RepoMind Week 4, Milestone 5
+// components/chat/ChatInput.tsx — CodeoMentis Week 4, Milestone 5
 //
 // Owns: local draft-text state (never touches useChat's message list
 // until actually sent), auto-resize behavior, the send interaction

@@ -12,7 +12,7 @@ Per llm.py's contract, LLM failure is never fatal here:
 generate_architecture_summary() catches LLMServiceError and returns
 None. Callers must fall back to showing the deterministic sections
 without an AI summary rather than failing the whole page — nothing
-in RepoMind should hard-depend on the LLM being available.
+in CodeoMentis should hard-depend on the LLM being available.
 """
 
 from __future__ import annotations

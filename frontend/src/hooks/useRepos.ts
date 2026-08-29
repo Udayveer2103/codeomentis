@@ -24,7 +24,7 @@ export function useRepos() {
   };
 }
 
-// Removes a repository (and its RepoMind data) from the current user's
+// Removes a repository (and its CodeoMentis data) from the current user's
 // account — never touches the underlying GitHub repository itself.
 export function useDeleteRepo() {
   const queryClient = useQueryClient();

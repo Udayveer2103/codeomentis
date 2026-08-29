@@ -1,4 +1,4 @@
-// components/architecture/ArchitectureReport.tsx — RepoMind Architecture Analyzer
+// components/architecture/ArchitectureReport.tsx — CodeoMentis Architecture Analyzer
 //
 // Composes Overview, Config, Folders, a graph summary, and the AI
 // narrative into one scrollable documentation-style page — meant to

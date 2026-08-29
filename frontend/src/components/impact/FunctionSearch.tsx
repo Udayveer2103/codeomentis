@@ -1,4 +1,4 @@
-// components/impact/FunctionSearch.tsx  —  RepoMind Week 3
+// components/impact/FunctionSearch.tsx  —  CodeoMentis Week 3
 //
 // Searchable combobox for selecting a function to analyse.
 // Uses shadcn/ui Popover + Command components.

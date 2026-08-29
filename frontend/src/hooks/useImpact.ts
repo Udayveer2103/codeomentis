@@ -1,4 +1,4 @@
-// hooks/useImpact.ts — RepoMind Week 3
+// hooks/useImpact.ts — CodeoMentis Week 3
 // TanStack Query hooks for the Impact Analyzer feature
 //
 // Milestone 5: ImpactResult extended with the AI reasoning fields

@@ -1,4 +1,4 @@
-// pages/Chat.tsx — RepoMind Week 4, Milestone 5
+// pages/Chat.tsx — CodeoMentis Week 4, Milestone 5
 //
 // Chat/RAG page. Thin shell: layout + UI state coordination only. All
 // conversation state, streaming, and SSE handling live in useChat.ts.

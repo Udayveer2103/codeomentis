@@ -16,7 +16,7 @@ const config: Config = {
         display: ['"Geist Variable"', ...defaultTheme.fontFamily.sans],
       },
       colors: {
-        // RepoMind's brand color is blue (#1683FF, hue ~211.9° at 100%
+        // CodeoMentis's brand color is blue (#1683FF, hue ~211.9° at 100%
         // saturation, ~54.3% lightness). brand-500 is an exact match for
         // that hex; the rest of the ramp holds the same hue/saturation and
         // varies only lightness.

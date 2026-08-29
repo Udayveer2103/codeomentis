@@ -1,4 +1,4 @@
-// components/walkthrough/WalkthroughSkeleton.tsx — RepoMind Walkthrough Redesign
+// components/walkthrough/WalkthroughSkeleton.tsx — CodeoMentis Walkthrough Redesign
 //
 // Loading placeholder shown while the walkthrough is being fetched or
 // generated. Mirrors the shape of real content (a group section with a

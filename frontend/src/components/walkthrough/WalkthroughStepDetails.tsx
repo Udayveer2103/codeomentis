@@ -1,4 +1,4 @@
-// components/walkthrough/WalkthroughStepDetails.tsx — RepoMind Walkthrough Redesign
+// components/walkthrough/WalkthroughStepDetails.tsx — CodeoMentis Walkthrough Redesign
 //
 // Rendered inside WalkthroughStepCard's animated details region. Presents
 // the supporting technical detail behind a step: core identity

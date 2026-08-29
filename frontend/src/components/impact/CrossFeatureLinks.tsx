@@ -1,6 +1,6 @@
-// components/impact/CrossFeatureLinks.tsx — RepoMind Impact Analyzer
+// components/impact/CrossFeatureLinks.tsx — CodeoMentis Impact Analyzer
 //
-// Milestone 8: repo-scoped navigation to the other RepoMind features.
+// Milestone 8: repo-scoped navigation to the other CodeoMentis features.
 // Routes confirmed directly from the app's router config — no query
 // params or file/function deep-linking invented, since no inspected
 // page (Heatmap, the only one seen in full) shows support for that.

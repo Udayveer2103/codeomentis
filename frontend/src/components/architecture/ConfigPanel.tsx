@@ -1,4 +1,4 @@
-// components/architecture/ConfigPanel.tsx — RepoMind Architecture Analyzer
+// components/architecture/ConfigPanel.tsx — CodeoMentis Architecture Analyzer
 //
 // Lists detected configuration files grouped by category, each with
 // its deterministically looked-up purpose. The category pill mirrors

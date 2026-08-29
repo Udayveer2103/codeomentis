@@ -1,5 +1,5 @@
 // components/impact/ImpactForceGraph.tsx
-// RepoMind Week 3 — Impact Analyzer Graph
+// CodeoMentis Week 3 — Impact Analyzer Graph
 //
 // Fixed TypeScript-safe D3 implementation
 // without changing architecture or logic.

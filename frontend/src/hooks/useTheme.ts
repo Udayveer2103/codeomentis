@@ -4,7 +4,7 @@ type Theme = "light" | "dark";
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
-  const stored = localStorage.getItem("repomind-theme") as Theme | null;
+  const stored = localStorage.getItem("CodeoMentis-theme") as Theme | null;
   if (stored) return stored;
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
@@ -18,7 +18,7 @@ function applyTheme(theme: Theme) {
   } else {
     root.classList.remove("dark");
   }
-  localStorage.setItem("repomind-theme", theme);
+  localStorage.setItem("CodeoMentis-theme", theme);
 }
 
 export function useTheme() {

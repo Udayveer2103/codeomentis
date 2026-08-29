@@ -1,4 +1,4 @@
-// components/impact/ImpactStats.tsx  —  RepoMind Week 3
+// components/impact/ImpactStats.tsx  —  CodeoMentis Week 3
 //
 // Right-hand panel showing:
 //   - blast radius count

@@ -1,4 +1,4 @@
-// components/walkthrough/WalkthroughStepCard.tsx — RepoMind Walkthrough Redesign
+// components/walkthrough/WalkthroughStepCard.tsx — CodeoMentis Walkthrough Redesign
 //
 // Presentational only: renders a single walkthrough step. Does not fetch
 // data. Does not own its own expansion state — the currently expanded

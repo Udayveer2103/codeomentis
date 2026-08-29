@@ -1,4 +1,4 @@
-// components/architecture/OverviewPanel.tsx — RepoMind Architecture Analyzer
+// components/architecture/OverviewPanel.tsx — CodeoMentis Architecture Analyzer
 //
 // Renders the deterministic overview: architecture pattern, file
 // counts, language breakdown, and the full tech stack. Pure

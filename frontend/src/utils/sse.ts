@@ -1,4 +1,4 @@
-// utils/sse.ts — RepoMind Week 4, Milestone 5
+// utils/sse.ts — CodeoMentis Week 4, Milestone 5
 //
 // Minimal SSE frame parser for manually-consumed streams (fetch() +
 // ReadableStream), since EventSource can't be used for POST requests.

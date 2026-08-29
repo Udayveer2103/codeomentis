@@ -1,4 +1,4 @@
-// components/chat/SourceCard.tsx — RepoMind Week 4, Milestone 5
+// components/chat/SourceCard.tsx — CodeoMentis Week 4, Milestone 5
 //
 // Presentational only: renders one retrieved source (file/function/line
 // range). similarity is intentionally NOT rendered per Milestone 5 scope

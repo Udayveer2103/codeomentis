@@ -1,5 +1,5 @@
 """
-heatmap.py  —  RepoMind Week 3
+heatmap.py  —  CodeoMentis Week 3
 GET /api/heatmap/{repo_id}
 
 Reads pre-computed scores from file_scores (written during ingestion by
