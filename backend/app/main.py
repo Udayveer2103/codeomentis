@@ -13,7 +13,7 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/hour"])
 
 # ── App init ──────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="RepoMind API",
+    title="CodeoMentis API",
     version="1.0.0",
     docs_url="/docs" if settings.environment == "development" else None,
     redoc_url=None,

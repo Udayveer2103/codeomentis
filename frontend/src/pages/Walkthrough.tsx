@@ -1,4 +1,4 @@
-// pages/Walkthrough.tsx — RepoMind Walkthrough Redesign
+// pages/Walkthrough.tsx — CodeoMentis Walkthrough Redesign
 //
 // Onboarding Walkthrough page. Thin shell: layout + UI states only.
 // List rendering (including the empty state) is fully delegated to

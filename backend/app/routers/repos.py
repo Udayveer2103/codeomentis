@@ -124,8 +124,8 @@ async def delete_repo(
     current_user: AuthUser = Depends(get_current_user),
 ):
     """
-    Removes a repository from RepoMind — never touches the actual GitHub
-    repository. Deleting the `repos` row cascades (ON DELETE CASCADE) to
+    Removes a repository from CodeoMentis — never touches the actual GitHub.
+    Deleting the `repos` row cascades (ON DELETE CASCADE) to
     every dependent table that references repo_id: file_scores,
     code_chunks, chat_messages, walkthrough_steps, impact_ai_cache
     (per supabase/migrations/*). The call graph JSON in the "graphs"
@@ -151,7 +151,7 @@ async def delete_repo(
     if not result.data:
         raise HTTPException(status_code=404, detail="Repository not found")
 
-    # Best-effort: the row (and its cascaded RepoMind data) is already
+    # Best-effort: the row (and its cascaded CodeoMentis data) is already
     # gone at this point regardless of whether this succeeds.
     try:
         supabase.storage.from_("graphs").remove([f"{repo_id}/call_graph.json"])

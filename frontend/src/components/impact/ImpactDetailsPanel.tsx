@@ -1,4 +1,4 @@
-// components/impact/ImpactDetailsPanel.tsx — RepoMind Impact Analyzer
+// components/impact/ImpactDetailsPanel.tsx — CodeoMentis Impact Analyzer
 //
 // Milestone 6: renders risk_reasons, possible_regressions,
 // affected_files, and downstream_call_chain — the fields explicitly

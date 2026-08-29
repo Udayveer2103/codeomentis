@@ -1,4 +1,4 @@
-// hooks/useWalkthrough.ts — RepoMind Walkthrough Redesign
+// hooks/useWalkthrough.ts — CodeoMentis Walkthrough Redesign
 //
 // TanStack Query hook for the Onboarding Walkthrough feature.
 // Mirrors the pattern established in useHeatmap.ts / useImpact.ts.

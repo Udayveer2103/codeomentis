@@ -1,4 +1,4 @@
-// components/walkthrough/WalkthroughGroupSection.tsx — RepoMind Walkthrough Redesign
+// components/walkthrough/WalkthroughGroupSection.tsx — CodeoMentis Walkthrough Redesign
 //
 // Renders one group as a visually distinct, collapsible section: a header
 // (label + step count) and its ordered step cards. Collapse state for the

@@ -1,4 +1,4 @@
-// components/impact/ImpactRecommendationsPanel.tsx — RepoMind Impact Analyzer
+// components/impact/ImpactRecommendationsPanel.tsx — CodeoMentis Impact Analyzer
 //
 // Milestone 7: renders suggested_test_cases and refactoring_advice —
 // the last two AI-generated fields not yet in the UI. Placed as its

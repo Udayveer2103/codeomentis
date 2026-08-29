@@ -1,4 +1,4 @@
-// components/architecture/FolderPanel.tsx — RepoMind Architecture Analyzer
+// components/architecture/FolderPanel.tsx — CodeoMentis Architecture Analyzer
 //
 // Lists top-level folders with file counts and, where the folder
 // name matches a known convention, its inferred responsibility.

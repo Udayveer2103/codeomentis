@@ -1,4 +1,4 @@
-// hooks/useHeatmap.ts  — RepoMind Week 3
+// hooks/useHeatmap.ts  — CodeoMentis Week 3
 //
 // TanStack Query hook for the Tech Debt Heatmap feature.
 // Mirrors the pattern established in useImpact.ts.

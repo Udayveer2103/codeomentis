@@ -1,4 +1,4 @@
-// components/impact/ImpactSummaryPanel.tsx — RepoMind Impact Analyzer
+// components/impact/ImpactSummaryPanel.tsx — CodeoMentis Impact Analyzer
 //
 // Milestone 5: renders the AI reasoning headline — ai_summary,
 // a Safe-to-Change indicator, and a risk-level badge — above the

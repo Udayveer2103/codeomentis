@@ -1,4 +1,4 @@
-// hooks/useArchitecture.ts — RepoMind Architecture Analyzer
+// hooks/useArchitecture.ts — CodeoMentis Architecture Analyzer
 //
 // TanStack Query hooks for the Repository Architecture Analyzer
 // feature. One hook per endpoint, each independently cacheable —

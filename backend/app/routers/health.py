@@ -8,6 +8,6 @@ router = APIRouter()
 async def health():
     return {
         "status": "ok",
-        "service": "repomind-api",
+        "service": "codeomentis-api",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }

@@ -1,4 +1,4 @@
-// hooks/useChat.ts — RepoMind Week 4, Milestone 5
+// hooks/useChat.ts — CodeoMentis Week 4, Milestone 5
 //
 // Plain custom hook (no TanStack Query) — chat is a long-lived streaming
 // session, not a cacheable request/response value, so it doesn't fit the

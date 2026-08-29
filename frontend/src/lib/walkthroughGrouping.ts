@@ -1,4 +1,4 @@
-// lib/walkthroughGrouping.ts — RepoMind Walkthrough Redesign
+// lib/walkthroughGrouping.ts — CodeoMentis Walkthrough Redesign
 //
 // Buckets the flat, already-ordered `steps` array into groups by
 // group_label. The backend is the single source of truth for group

@@ -1,4 +1,4 @@
-// components/chat/ChatMessage.tsx — RepoMind Week 4, Milestone 5
+// components/chat/ChatMessage.tsx — CodeoMentis Week 4, Milestone 5
 //
 // Renders one message bubble. User messages are right-aligned, simple
 // text only. Assistant messages are left-aligned and own: streamed

@@ -1,4 +1,4 @@
-// pages/HeatmapPage.tsx  —  RepoMind Week 3
+// pages/HeatmapPage.tsx  —  CodeoMentis Week 3
 //
 // Tech Debt Heatmap page.
 // URL: /repo/:repoId/heatmap

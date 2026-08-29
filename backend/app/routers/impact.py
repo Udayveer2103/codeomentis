@@ -1,5 +1,5 @@
 """
-impact.py — RepoMind Week 3
+impact.py — CodeoMentis Week 3
 GET /api/impact/{repo_id}?function=file.py::my_func
 
 Loads the call graph from Supabase Storage, reverses it,
