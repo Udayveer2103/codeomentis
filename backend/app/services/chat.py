@@ -131,12 +131,11 @@ async def handle_chat_message(
     -> persist assistant message
     -> Done.
 
-    Repository metadata is included in the prompt context so questions
-    about repository identity can be answered reliably without changing
-    the existing RAG retrieval pipeline.
+    Repository metadata is included in the prompt as authoritative
+    metadata. This allows questions such as "what is the name of this
+    repo?" to be answered without changing the existing vector RAG flow.
 
-    Yields ChatEvent instances. Always terminates the generator itself
-    (never raises past this function).
+    Yields ChatEvent instances. Always terminates the generator itself.
     """
     supabase = get_supabase_client()
 
@@ -181,12 +180,14 @@ async def handle_chat_message(
         )
         return
 
+    # Existing vector RAG retrieval.
     chunks = _retrieve_chunks(
         supabase,
         repo_id,
         query_embedding,
     )
 
+    # Sources sent to frontend never contain raw code content.
     yield SourcesEvent(
         sources=[
             _to_source_metadata(chunk)
@@ -194,16 +195,26 @@ async def handle_chat_message(
         ]
     )
 
-    # Existing RAG context remains unchanged.
-    context = _build_context(chunks)
+    # Keep the existing bounded RAG context.
+    code_context = _build_context(chunks)
 
-    # Add authoritative repository metadata alongside the retrieved
-    # source-code context. This does NOT bypass RAG.
-    repo_metadata = f"Repository name: {repo_name}"
+    # ------------------------------------------------------------------
+    # IMPORTANT:
+    # Repository metadata is authoritative and separate from retrieved
+    # code. This prevents the model from treating the repo name as
+    # something it must discover inside a source-code chunk.
+    # ------------------------------------------------------------------
+
+    repo_metadata = (
+        "AUTHORITATIVE REPOSITORY METADATA\n"
+        f"Repository name: {repo_name}\n"
+        "END AUTHORITATIVE REPOSITORY METADATA"
+    )
 
     context = (
         f"{repo_metadata}\n\n"
-        f"{context}"
+        f"RETRIEVED CODE CONTEXT\n"
+        f"{code_context}"
     )
 
     system_prompt, user_prompt = _build_prompt(
@@ -265,7 +276,7 @@ def _validate_repo(
         (error_message, repo_name)
 
     Validates repository existence, ownership, and readiness while also
-    retrieving the repository name for prompt metadata.
+    retrieving the repository name for authoritative chat metadata.
     """
     result = (
         supabase.table("repos")
@@ -473,12 +484,32 @@ def _build_prompt(
     any of this.
     """
     system_prompt = (
-        "You are a helpful assistant answering questions about a specific "
-        "codebase, using the provided repository metadata and code context. "
-        "If the context doesn't contain enough information to answer "
-        "confidently, say so rather than guessing. Keep answers concise "
-        "and reference specific files/functions from the context where "
-        "relevant."
+        "You are a helpful assistant answering questions about a "
+        "specific GitHub repository.\n\n"
+
+        "IMPORTANT RULES:\n"
+        "1. The section named 'AUTHORITATIVE REPOSITORY METADATA' "
+        "contains trusted metadata about the repository.\n"
+
+        "2. If that section contains 'Repository name:', that value "
+        "is the repository name. Answer repository-name questions "
+        "directly from that value.\n"
+
+        "3. Never say that the repository name is unavailable merely "
+        "because the retrieved source-code snippets do not contain "
+        "the name.\n"
+
+        "4. Use the retrieved code context for technical questions "
+        "about the implementation.\n"
+
+        "5. Do not invent facts that are not supported by the provided "
+        "repository metadata or retrieved code context.\n"
+
+        "6. If the provided context genuinely does not contain enough "
+        "information to answer a question, say so rather than guessing.\n"
+
+        "7. Keep answers concise and reference specific files/functions "
+        "from the retrieved context where relevant."
     )
 
     history_text = ""
@@ -497,7 +528,7 @@ def _build_prompt(
 
     user_prompt = (
         f"{history_text}"
-        f"Relevant repository context:\n{context}\n\n"
+        f"{context}\n\n"
         f"Question: {user_message}"
     )
 
