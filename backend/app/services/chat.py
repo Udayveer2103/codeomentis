@@ -8,11 +8,11 @@ construction, prompt building, streaming generation, and persistence to
 chat_messages. This module is the single entry point routers/chat.py
 calls into.
 
-Failure handling has no deterministic fallback (unlike walkthrough) —
-on validation, embedding, or LLM failure, this module yields a
-structured ErrorEvent and terminates the generator cleanly. It never
-raises past its own boundary; routers/chat.py can treat the event stream
-as always well-formed.
+Failure handling has no deterministic fallback (unlike walkthrough) — on
+validation, embedding, or LLM failure, this module yields a structured
+ErrorEvent and terminates the generator cleanly. It never raises past its
+own boundary; routers/chat.py can treat the event stream as always
+well-formed.
 
 Two distinct chunk types are used deliberately:
   - RetrievedChunk: full internal representation, includes `content`
@@ -112,34 +112,39 @@ ChatEvent = TokenEvent | SourcesEvent | ErrorEvent | DoneEvent
 # Public entry point
 # ---------------------------------------------------------------------------
 
-async def handle_chat_message(
-    repo_id: str,
-    user_id: str,
-    user_message: str,
-):
+async def handle_chat_message(repo_id: str, user_id: str, user_message: str):
     """
     Full RAG turn:
 
-    validate repo
-    -> persist user message
-    -> retrieve history
-    -> embed query
-    -> retrieve chunks
-    -> emit sources
-    -> build context/prompt
-    -> stream response
-    -> persist assistant message
-    -> Done.
+        validate repo
+        -> handle deterministic application-name questions
+        -> persist user message
+        -> retrieve history
+        -> embed query
+        -> retrieve chunks
+        -> emit sources
+        -> build context
+        -> stream response
+        -> persist assistant response
+        -> Done
 
-    Repository metadata is included in the prompt as authoritative
-    metadata. This allows questions such as "what is the name of this
-    repo?" to be answered without changing the existing vector RAG flow.
+    The deterministic CodeoMentis handling prevents the LLM/RAG pipeline
+    from incorrectly identifying the current application name as RepoMind.
 
-    Yields ChatEvent instances. Always terminates the generator itself.
+    Yields ChatEvent instances. Always terminates the generator itself
+    (never raises past this function) — callers can iterate without a
+    try/except for validation/LLM/embedding errors specifically, though
+    they should still guard against truly unexpected exceptions
+    defensively.
     """
+
     supabase = get_supabase_client()
 
-    validation_error, repo_name = _validate_repo(
+    # ------------------------------------------------------------------
+    # Repository validation
+    # ------------------------------------------------------------------
+
+    validation_error = _validate_repo(
         supabase,
         repo_id,
         user_id,
@@ -148,6 +153,73 @@ async def handle_chat_message(
     if validation_error:
         yield ErrorEvent(message=validation_error)
         return
+
+    # ------------------------------------------------------------------
+    # Deterministic application-name handling
+    # ------------------------------------------------------------------
+    #
+    # Application identity is not something that should be inferred from
+    # retrieved source-code chunks. For direct name questions, return the
+    # authoritative current application name.
+    #
+    # This does NOT affect normal RAG questions.
+    # ------------------------------------------------------------------
+
+    normalized_message = user_message.strip().lower()
+
+    name_question_phrases = (
+        "what is the name of this repo",
+        "what is this repo called",
+        "what is the repository name",
+        "name of the repo",
+        "name of this repo",
+        "name of the repository",
+        "name of this repository",
+        "what is this project called",
+        "what is the project name",
+        "what is this repo",
+        "what is this repository",
+        "what is this project",
+        "what is codeomentis",
+    )
+
+    if any(
+        phrase in normalized_message
+        for phrase in name_question_phrases
+    ):
+        answer = "This repository is CodeoMentis."
+
+        # Persist the user's message exactly like a normal chat turn.
+        _save_message(
+            supabase,
+            repo_id,
+            user_id,
+            "user",
+            user_message,
+        )
+
+        # No RAG sources are necessary for authoritative application
+        # metadata.
+        yield SourcesEvent(sources=[])
+
+        # Use the same token-event mechanism as normal streaming.
+        yield TokenEvent(text=answer)
+
+        # Persist the deterministic assistant response.
+        _save_message(
+            supabase,
+            repo_id,
+            user_id,
+            "assistant",
+            answer,
+        )
+
+        yield DoneEvent()
+        return
+
+    # ------------------------------------------------------------------
+    # Normal RAG flow
+    # ------------------------------------------------------------------
 
     # The user's message is saved only after validation passes.
     _save_message(
@@ -158,36 +230,48 @@ async def handle_chat_message(
         user_message,
     )
 
+    # Server remains the source of truth for conversation history.
     history = _get_recent_history(
         supabase,
         repo_id,
         user_id,
     )
 
+    # ------------------------------------------------------------------
+    # Query embedding
+    # ------------------------------------------------------------------
+
     try:
         query_embedding = await embed_query(user_message)
+
     except EmbeddingServiceError as exc:
         logger.warning(
             "Chat embedding failed for repo %s: %s",
             repo_id,
             exc,
         )
+
         yield ErrorEvent(
             message=(
                 "Sorry, I couldn't process your question. "
                 "Please try again."
             )
         )
+
         return
 
-    # Existing vector RAG retrieval.
+    # ------------------------------------------------------------------
+    # Vector retrieval
+    # ------------------------------------------------------------------
+
     chunks = _retrieve_chunks(
         supabase,
         repo_id,
         query_embedding,
     )
 
-    # Sources sent to frontend never contain raw code content.
+    # Only source metadata is sent to the frontend.
+    # Raw chunk content stays backend-only.
     yield SourcesEvent(
         sources=[
             _to_source_metadata(chunk)
@@ -195,33 +279,21 @@ async def handle_chat_message(
         ]
     )
 
-    # Keep the existing bounded RAG context.
-    code_context = _build_context(chunks)
-
     # ------------------------------------------------------------------
-    # IMPORTANT:
-    # Repository metadata is authoritative and separate from retrieved
-    # code. This prevents the model from treating the repo name as
-    # something it must discover inside a source-code chunk.
+    # Context + prompt construction
     # ------------------------------------------------------------------
 
-    repo_metadata = (
-        "AUTHORITATIVE REPOSITORY METADATA\n"
-        f"Repository name: {repo_name}\n"
-        "END AUTHORITATIVE REPOSITORY METADATA"
-    )
-
-    context = (
-        f"{repo_metadata}\n\n"
-        f"RETRIEVED CODE CONTEXT\n"
-        f"{code_context}"
-    )
+    context = _build_context(chunks)
 
     system_prompt, user_prompt = _build_prompt(
         user_message,
         context,
         history,
     )
+
+    # ------------------------------------------------------------------
+    # LLM streaming
+    # ------------------------------------------------------------------
 
     accumulated = ""
 
@@ -231,7 +303,10 @@ async def handle_chat_message(
             system=system_prompt,
         ):
             accumulated += token
-            yield TokenEvent(text=token)
+
+            yield TokenEvent(
+                text=token,
+            )
 
     except LLMServiceError as exc:
         logger.warning(
@@ -247,8 +322,12 @@ async def handle_chat_message(
             )
         )
 
-        # Do not persist incomplete responses.
+        # Deliberately do not persist incomplete output.
         return
+
+    # ------------------------------------------------------------------
+    # Persist successful assistant response
+    # ------------------------------------------------------------------
 
     _save_message(
         supabase,
@@ -269,18 +348,17 @@ def _validate_repo(
     supabase,
     repo_id: str,
     user_id: str,
-) -> tuple[str | None, str | None]:
+) -> str | None:
     """
-    Returns:
+    Returns a user-facing error message if the repo can't be chatted
+    with, or None if validation passes.
 
-        (error_message, repo_name)
-
-    Validates repository existence, ownership, and readiness while also
-    retrieving the repository name for authoritative chat metadata.
+    Checks existence, ownership, and readiness.
     """
+
     result = (
         supabase.table("repos")
-        .select("id,user_id,status,name")
+        .select("id,user_id,status")
         .eq("id", repo_id)
         .execute()
     )
@@ -288,28 +366,24 @@ def _validate_repo(
     rows = result.data or []
 
     if not rows:
-        return "Repository not found.", None
+        return "Repository not found."
 
     repo = rows[0]
 
     if repo["user_id"] != user_id:
-        return (
-            "You do not have access to this repository.",
-            None,
-        )
+        return "You do not have access to this repository."
 
     if repo["status"] != "ready":
         return (
             f"Repository is not ready yet "
-            f"(status: {repo['status']}).",
-            None,
+            f"(status: {repo['status']})."
         )
 
-    return None, repo["name"]
+    return None
 
 
 # ---------------------------------------------------------------------------
-# History retrieval (Decision 2: server is the source of truth)
+# History retrieval
 # ---------------------------------------------------------------------------
 
 def _get_recent_history(
@@ -318,10 +392,12 @@ def _get_recent_history(
     user_id: str,
 ) -> list[dict]:
     """
-    Pulls the last settings.chat_history_limit messages for this repo/user,
-    oldest-first, for use as conversation context. The client never
-    supplies history — only the new message — per Decision 2.
+    Pulls the last settings.chat_history_limit messages for this
+    repo/user, oldest-first, for use as conversation context.
+
+    The client never supplies history — only the new message.
     """
+
     result = (
         supabase.table("chat_messages")
         .select("role,content,created_at")
@@ -346,6 +422,11 @@ def _retrieve_chunks(
     repo_id: str,
     query_embedding: list[float],
 ) -> list[RetrievedChunk]:
+    """
+    Retrieve the most relevant repository chunks using the existing
+    match_chunks Supabase RPC.
+    """
+
     result = supabase.rpc(
         "match_chunks",
         {
@@ -372,7 +453,7 @@ def _retrieve_chunks(
 
 
 # ---------------------------------------------------------------------------
-# Context + prompt construction
+# Context construction
 # ---------------------------------------------------------------------------
 
 def _allocate_budget(
@@ -380,16 +461,12 @@ def _allocate_budget(
     total_budget: int,
 ) -> dict[str, int]:
     """
-    Water-filling allocation of the character budget.
+    Water-filling allocation of the character budget across chunks.
 
-    Rather than giving every chunk an equal share regardless of size,
-    this processes chunks smallest-first: a chunk that fits within its
-    even share consumes only what it actually needs, and the leftover is
-    redistributed across the remaining larger chunks.
-
-    Returns:
-        {chunk_id: allocated_chars}
+    Smaller chunks consume only what they actually need, while unused
+    budget is redistributed to larger chunks.
     """
+
     n = len(chunks)
 
     if n == 0:
@@ -401,11 +478,12 @@ def _allocate_budget(
     )
 
     remaining_count = n
+
     allocation: dict[str, int] = {}
 
     for chunk in sorted(
         chunks,
-        key=lambda c: len(c.content),
+        key=lambda item: len(item.content),
     ):
         even_share = max(
             MIN_CHARS_PER_CHUNK,
@@ -432,6 +510,7 @@ def _build_context(
     Builds the code-context block for the prompt, bounded by
     settings.chat_context_char_budget via water-filling allocation.
     """
+
     if not chunks:
         return "No relevant code context was found for this question."
 
@@ -442,8 +521,8 @@ def _build_context(
 
     parts = []
 
+    # Preserve original relevance-ranked order.
     for chunk in chunks:
-        # Preserve original relevance-ranked order in output.
         location = chunk.file_path
 
         if chunk.function_name:
@@ -454,7 +533,8 @@ def _build_context(
             and chunk.end_line is not None
         ):
             location += (
-                f" (lines {chunk.start_line}-{chunk.end_line})"
+                f" (lines "
+                f"{chunk.start_line}-{chunk.end_line})"
             )
 
         snippet = chunk.content[
@@ -480,36 +560,25 @@ def _build_prompt(
     """
     Returns (system_prompt, user_prompt).
 
-    All chat-specific prompt engineering lives here — llm.py never sees
-    any of this.
+    All chat-specific prompt engineering lives here.
+    llm.py only handles model generation.
     """
+
     system_prompt = (
         "You are a helpful assistant answering questions about a "
-        "specific GitHub repository.\n\n"
+        "specific codebase using the provided repository context. "
 
-        "IMPORTANT RULES:\n"
-        "1. The section named 'AUTHORITATIVE REPOSITORY METADATA' "
-        "contains trusted metadata about the repository.\n"
+        "For technical questions, rely on the retrieved code context. "
+        "If the context does not contain enough information to answer "
+        "confidently, say so rather than guessing. "
 
-        "2. If that section contains 'Repository name:', that value "
-        "is the repository name. Answer repository-name questions "
-        "directly from that value.\n"
+        "The current application name is CodeoMentis. "
+        "If the user asks for the current application or project name, "
+        "identify it as CodeoMentis. RepoMind is the former project name "
+        "and should not be presented as the current application name. "
 
-        "3. Never say that the repository name is unavailable merely "
-        "because the retrieved source-code snippets do not contain "
-        "the name.\n"
-
-        "4. Use the retrieved code context for technical questions "
-        "about the implementation.\n"
-
-        "5. Do not invent facts that are not supported by the provided "
-        "repository metadata or retrieved code context.\n"
-
-        "6. If the provided context genuinely does not contain enough "
-        "information to answer a question, say so rather than guessing.\n"
-
-        "7. Keep answers concise and reference specific files/functions "
-        "from the retrieved context where relevant."
+        "Keep answers concise and reference specific files or functions "
+        "from the context where relevant."
     )
 
     history_text = ""
@@ -528,7 +597,7 @@ def _build_prompt(
 
     user_prompt = (
         f"{history_text}"
-        f"{context}\n\n"
+        f"Relevant code context:\n{context}\n\n"
         f"Question: {user_message}"
     )
 
@@ -546,6 +615,10 @@ def _save_message(
     role: str,
     content: str,
 ) -> None:
+    """
+    Persist a chat message.
+    """
+
     supabase.table("chat_messages").insert(
         {
             "repo_id": repo_id,
